@@ -56,10 +56,29 @@ defmodule VenditWeb.Router do
   scope "/", VenditWeb do
     pipe_through [:browser, :require_authenticated_user]
 
+    live_session :require_authenticated_seller,
+      on_mount: [
+        {VenditWeb.UserAuth, :ensure_authenticated_seller}
+      ] do
+      live "/products/new", ProductLive.Index, :new
+    end
+
     live_session :require_authenticated_user,
       on_mount: [{VenditWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+      live "/products", ProductLive.Index, :index
+      live "/products/:id", ProductLive.Show, :show
+      live "/app", VendingMachineLive, :new
+    end
+
+    live_session :require_authenticated_seller_owns_product,
+      on_mount: [
+        {VenditWeb.UserAuth, :ensure_authenticated_seller},
+        {VenditWeb.UserAuth, :ensure_seller_owns_item}
+      ] do
+      live "/products/:id/edit", ProductLive.Index, :edit
+      live "/products/:id/show/edit", ProductLive.Show, :edit
     end
   end
 

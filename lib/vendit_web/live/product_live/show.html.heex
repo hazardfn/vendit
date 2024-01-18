@@ -1,0 +1,36 @@
+<%= if @current_user.id == @product.seller_id do %>
+  <.header>
+    <%= @product.product_name %>
+    <:subtitle>This is a product record from your database.</:subtitle>
+    <:actions>
+      <.link patch={~p"/products/#{@product}/show/edit"} phx-click={JS.push_focus()}>
+        <.button>Edit product</.button>
+      </.link>
+    </:actions>
+  </.header>
+<% end %>
+
+<.list>
+  <:item title="Product name"><%= @product.product_name %></:item>
+  <:item title="Cost"><%= @product.cost %></:item>
+  <:item title="Amount available"><%= @product.amount_available %></:item>
+</.list>
+
+<.back navigate={~p"/products"}>Back to products</.back>
+
+<.modal
+  :if={@live_action == :edit and @current_user.id == @product.seller_id}
+  id="product-modal"
+  show
+  on_cancel={JS.patch(~p"/products/#{@product}")}
+>
+  <.live_component
+    module={VenditWeb.ProductLive.FormComponent}
+    id={@product.id}
+    title={@page_title}
+    action={@live_action}
+    product={@product}
+    current_user={@current_user}
+    patch={~p"/products/#{@product}"}
+  />
+</.modal>
