@@ -16,6 +16,10 @@ defmodule VenditWeb.CoreComponents do
   """
   use Phoenix.Component
 
+  use Phoenix.VerifiedRoutes,
+    endpoint: VenditWeb.Endpoint,
+    router: VenditWeb.Router
+
   alias Phoenix.LiveView.JS
 
   @doc """
@@ -23,16 +27,16 @@ defmodule VenditWeb.CoreComponents do
 
   ## Examples
 
-      <.modal id="confirm-modal">
-        This is a modal.
-      </.modal>
+  <.modal id="confirm-modal">
+      This is a modal.
+  </.modal>
 
   JS commands may be passed to the `:on_cancel` to configure
   the closing/cancel event, for example:
 
-      <.modal id="confirm" on_cancel={JS.navigate(~p"/posts")}>
-        This is another modal.
-      </.modal>
+  <.modal id="confirm" on_cancel={JS.navigate(~p"/posts")}>
+      This is another modal.
+  </.modal>
 
   """
   attr :id, :string, required: true
@@ -89,12 +93,63 @@ defmodule VenditWeb.CoreComponents do
   end
 
   @doc """
+  Displays the user login/registration/information bar.
+  """
+  attr :id, :string
+  attr :current_user, :map, doc: "the currently logged in user, can be nil"
+  attr :socket, :any
+
+  def login(assigns) do
+    ~H"""
+    <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+      <%= if assigns[:current_user] do %>
+        <%= live_render(@socket, VenditWeb.UserHeaderLive, id: @id, session: %{}, sticky: true) %>
+        <li>
+          <.link
+            href={~p"/users/settings"}
+            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+          >
+            Settings <.icon name="hero-cog-6-tooth" class="h-5 w-5" />
+          </.link>
+        </li>
+        <li>
+          <.link
+            href={~p"/users/log_out"}
+            method="delete"
+            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+          >
+            Log out <.icon name="hero-arrow-uturn-right" class="h-5 w-5" />
+          </.link>
+        </li>
+      <% else %>
+        <li>
+          <.link
+            href={~p"/users/register"}
+            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+          >
+            Register <.icon name="hero-user-plus" class="h-5 w-5" />
+          </.link>
+        </li>
+        <li>
+          <.link
+            href={~p"/users/log_in"}
+            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+          >
+            Log in <.icon name="hero-arrow-down-on-square" class="h-5 w-5" />
+          </.link>
+        </li>
+      <% end %>
+    </ul>
+    """
+  end
+
+  @doc """
   Renders flash notices.
 
   ## Examples
 
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:info} phx-mounted={show("#flash")}>Welcome Back!</.flash>
+  <.flash kind={:info} flash={@flash} />
+  <.flash kind={:info} phx-mounted={show("#flash")}>Welcome Back!</.flash>
   """
   attr :id, :string, doc: "the optional id of flash container"
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
@@ -138,7 +193,7 @@ defmodule VenditWeb.CoreComponents do
 
   ## Examples
 
-      <.flash_group flash={@flash} />
+  <.flash_group flash={@flash} />
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
@@ -179,13 +234,13 @@ defmodule VenditWeb.CoreComponents do
 
   ## Examples
 
-      <.simple_form for={@form} phx-change="validate" phx-submit="save">
-        <.input field={@form[:email]} label="Email"/>
-        <.input field={@form[:username]} label="Username" />
-        <:actions>
+  <.simple_form for={@form} phx-change="validate" phx-submit="save">
+      <.input field={@form[:email]} label="Email" />
+      <.input field={@form[:username]} label="Username" />
+      <:actions>
           <.button>Save</.button>
-        </:actions>
-      </.simple_form>
+      </:actions>
+  </.simple_form>
   """
   attr :for, :any, required: true, doc: "the datastructure for the form"
   attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
@@ -215,8 +270,8 @@ defmodule VenditWeb.CoreComponents do
 
   ## Examples
 
-      <.button>Send!</.button>
-      <.button phx-click="go" class="ml-2">Send!</.button>
+  <.button>Send!</.button>
+  <.button phx-click="go" class="ml-2">Send!</.button>
   """
   attr :type, :string, default: nil
   attr :class, :string, default: nil
@@ -251,19 +306,19 @@ defmodule VenditWeb.CoreComponents do
 
   This function accepts all HTML input types, considering that:
 
-    * You may also set `type="select"` to render a `<select>` tag
+  * You may also set `type="select"` to render a `<select>` tag
 
-    * `type="checkbox"` is used exclusively to render boolean values
+  * `type="checkbox"` is used exclusively to render boolean values
 
-    * For live file uploads, see `Phoenix.Component.live_file_input/1`
+  * For live file uploads, see `Phoenix.Component.live_file_input/1`
 
   See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input
   for more information.
 
   ## Examples
 
-      <.input field={@form[:email]} type="email" />
-      <.input name="my-input" errors={["oh no!"]} />
+  <.input field={@form[:email]} type="email" />
+  <.input name="my-input" errors={["oh no!"]} />
   """
   attr :id, :any, default: nil
   attr :name, :any
@@ -273,7 +328,7 @@ defmodule VenditWeb.CoreComponents do
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file hidden month number password
-               range radio search select tel text textarea time url week)
+    range radio search select tel text textarea time url week)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -286,7 +341,7 @@ defmodule VenditWeb.CoreComponents do
 
   attr :rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
-                multiple pattern placeholder readonly required rows size step)
+    multiple pattern placeholder readonly required rows size step)
 
   slot :inner_block
 
@@ -440,15 +495,29 @@ defmodule VenditWeb.CoreComponents do
     """
   end
 
+  attr :href, :string
+  attr :text, :string
+
+  def styled_menu_item(assigns) do
+    ~H"""
+    <a
+      href={@href}
+      class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+    >
+      <%= @text %>
+    </a>
+    """
+  end
+
   @doc ~S"""
   Renders a table with generic styling.
 
   ## Examples
 
-      <.table id="users" rows={@users}>
-        <:col :let={user} label="id"><%= user.id %></:col>
-        <:col :let={user} label="username"><%= user.username %></:col>
-      </.table>
+  <.table id="users" rows={@users}>
+      <:col :let={user} label="id"><%= user.id %></:col>
+      <:col :let={user} label="username"><%= user.username %></:col>
+  </.table>
   """
   attr :id, :string, required: true
   attr :rows, :list, required: true
@@ -472,7 +541,7 @@ defmodule VenditWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
+    <div class="overflow-y-auto px-10 sm:overflow-visible sm:px-10 sm:py-auto">
       <table class="w-[40rem] mt-11 sm:w-full">
         <thead class="text-sm text-left leading-6 text-zinc-500">
           <tr>

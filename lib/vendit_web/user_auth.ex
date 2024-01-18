@@ -4,6 +4,7 @@ defmodule VenditWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
+  alias Vendit.Products
   alias Vendit.Accounts
 
   # Make the remember me cookie valid for 60 days.
@@ -162,6 +163,37 @@ defmodule VenditWeb.UserAuth do
     end
   end
 
+  def on_mount(:ensure_authenticated_seller, _params, session, socket) do
+    socket = mount_current_user(socket, session)
+
+    case socket.assigns.current_user do
+      %{role: :seller} ->
+        {:cont, socket}
+
+      _not_seller ->
+        socket =
+          socket
+          |> Phoenix.LiveView.put_flash(:error, "You do not have permission to view this page.")
+          |> Phoenix.LiveView.redirect(to: ~p"/users/log_in")
+
+        {:halt, socket}
+    end
+  end
+
+  def on_mount(:ensure_seller_owns_item, %{"id" => id}, session, socket) do
+    socket = mount_current_user(socket, session)
+
+    product = Products.get_product!(id)
+
+    if product.seller_id == socket.assigns.current_user.id,
+      do: {:cont, socket},
+      else:
+        {:halt,
+         socket
+         |> Phoenix.LiveView.put_flash(:error, "You do not have permission to view this page.")
+         |> Phoenix.LiveView.redirect(to: ~p"/users/log_in")}
+  end
+
   def on_mount(:redirect_if_user_is_authenticated, _params, session, socket) do
     socket = mount_current_user(socket, session)
 
@@ -211,6 +243,54 @@ defmodule VenditWeb.UserAuth do
     end
   end
 
+  @doc """
+  Used for routes that require the user to be authenticated and a seller.
+  """
+  def require_authenticated_seller(conn, _opts) do
+    case conn.assigns[:current_user] do
+      %{role: :seller} ->
+        conn
+
+      _not_seller ->
+        conn
+        |> put_flash(:error, "You do not have permission to view this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/users/log_in")
+        |> halt()
+    end
+  end
+
+  def require_authenticated_seller_owns_product(conn, opts) do
+    conn = require_authenticated_seller(conn, opts)
+    current_user_id = conn.assigns[:current_user].id
+    product_id = fetch_query_params(conn).params["id"]
+    product = if product_id, do: Products.get_product!(product_id)
+
+    case product do
+      %Products.Product{seller_id: ^current_user_id} ->
+        conn
+
+      _not_owned_by_user ->
+        conn
+        |> put_flash(:error, "You do not have permission to view this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/users/log_in")
+        |> halt()
+    end
+  end
+
+  def fetch_api_user(conn, _opts) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         {:ok, user} <- Accounts.fetch_user_by_api_token(token) do
+      assign(conn, :current_user, user)
+    else
+      _ ->
+        conn
+        |> send_resp(:unauthorized, "No access for you")
+        |> halt()
+    end
+  end
+
   defp put_token_in_session(conn, token) do
     conn
     |> put_session(:user_token, token)
@@ -223,5 +303,5 @@ defmodule VenditWeb.UserAuth do
 
   defp maybe_store_return_to(conn), do: conn
 
-  defp signed_in_path(_conn), do: ~p"/"
+  defp signed_in_path(_conn), do: ~p"/app"
 end

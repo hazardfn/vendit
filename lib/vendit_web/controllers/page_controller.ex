@@ -2,8 +2,8 @@ defmodule VenditWeb.PageController do
   use VenditWeb, :controller
 
   def home(conn, _params) do
-    # The home page is often custom made,
-    # so skip the default app layout.
-    render(conn, :home, layout: false)
+    if conn.assigns.current_user,
+      do: redirect(conn, to: ~p"/app"),
+      else: conn |> assign(:socket, nil) |> render(:instructions)
   end
 end

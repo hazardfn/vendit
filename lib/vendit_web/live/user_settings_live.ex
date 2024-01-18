@@ -3,6 +3,7 @@ defmodule VenditWeb.UserSettingsLive do
 
   alias Vendit.Accounts
 
+  @impl true
   def render(assigns) do
     ~H"""
     <.header class="text-center">
@@ -73,19 +74,7 @@ defmodule VenditWeb.UserSettingsLive do
     """
   end
 
-  def mount(%{"token" => token}, _session, socket) do
-    socket =
-      case Accounts.update_user_email(socket.assigns.current_user, token) do
-        :ok ->
-          put_flash(socket, :info, "Email changed successfully.")
-
-        :error ->
-          put_flash(socket, :error, "Email change link is invalid or it has expired.")
-      end
-
-    {:ok, push_navigate(socket, to: ~p"/users/settings")}
-  end
-
+  @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     email_changeset = Accounts.change_user_email(user)
@@ -103,6 +92,28 @@ defmodule VenditWeb.UserSettingsLive do
     {:ok, socket}
   end
 
+  @impl true
+  def handle_params(params, _url, socket) do
+    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+  end
+
+  defp apply_action(socket, :confirm_email, %{"token" => token}) do
+    case Accounts.update_user_email(socket.assigns.current_user, token) do
+      :ok ->
+        socket
+        |> put_flash(:info, "Email changed successfully.")
+        |> push_navigate(to: ~p"/users/settings")
+
+      :error ->
+        socket
+        |> put_flash(:error, "Email change link is invalid or it has expired.")
+        |> push_navigate(to: ~p"/users/settings")
+    end
+  end
+
+  defp apply_action(socket, _, _), do: socket
+
+  @impl true
   def handle_event("validate_email", params, socket) do
     %{"current_password" => password, "user" => user_params} = params
 

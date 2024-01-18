@@ -7,7 +7,6 @@ defmodule VenditWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, html: {VenditWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_user
@@ -15,6 +14,7 @@ defmodule VenditWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :fetch_api_user
   end
 
   scope "/", VenditWeb do
@@ -26,10 +26,19 @@ defmodule VenditWeb.Router do
   # Other scopes may use custom stacks.
   # scope "/api", VenditWeb do
   #   pipe_through :api
+
+  #   post "/user", UserController, :new
+  # end
+
+  # scope "/api", VenditWeb do
+  #   pipe_through [:api, :require_authenticated_user]
+
+  #   get "/user/:id", UserController, :show
+  #   patch "/user/:id", UserController, :edit
+  #   delete "/user/:id", UserController, :delete
   # end
 
   ## Authentication routes
-
   scope "/", VenditWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
@@ -63,6 +72,14 @@ defmodule VenditWeb.Router do
       on_mount: [{VenditWeb.UserAuth, :mount_current_user}] do
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
+    end
+  end
+
+  if Mix.env() == :dev do
+    scope "/dev" do
+      pipe_through [:browser]
+
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 end
