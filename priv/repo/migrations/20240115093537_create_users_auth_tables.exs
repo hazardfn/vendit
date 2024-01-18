@@ -7,6 +7,8 @@ defmodule Vendit.Repo.Migrations.CreateUsersAuthTables do
       add :email, :string, null: false, collate: :nocase
       add :hashed_password, :string, null: false
       add :confirmed_at, :naive_datetime
+      add :role, :string, null: false, default: "buyer"
+      add :deposit, :integer, null: false, default: 0
       timestamps(type: :utc_datetime)
     end
 

@@ -7,6 +7,7 @@ defmodule Vendit.Accounts do
   alias Vendit.Repo
 
   alias Vendit.Accounts.{User, UserToken, UserNotifier}
+  alias Vendit.Products
 
   ## Database getters
 
@@ -109,6 +110,42 @@ defmodule Vendit.Accounts do
   end
 
   @doc """
+  Creates a new api token for a user.
+
+  The token returned must be saved somewhere safe.
+  This token cannot be recovered from the database.
+  """
+  def create_user_api_token(user) do
+    {encoded_token, user_token} = UserToken.build_email_token(user, "api-token")
+    Repo.insert!(user_token)
+    encoded_token
+  end
+
+  @doc """
+  Fetches the user by API token.
+  """
+  def fetch_user_by_api_token(token) do
+    with {:ok, query} <- UserToken.verify_email_token_query(token, "api-token"),
+         %User{} = user <- Repo.one(query) do
+      {:ok, user}
+    else
+      _ -> :error
+    end
+  end
+
+  @doc """
+  Returns an `Ecto.Changeset{}` for changing the user deposit.
+
+  ## Examples
+
+      iex> change_user_deposit(user, -10)
+      %Ecto.Changeset{data: %User{}}
+  """
+  def change_user_deposit(user, change_amount) do
+    User.deposit_changeset(user, %{deposit: user.deposit + change_amount})
+  end
+
+  @doc """
   Emulates that the email will change without actually changing
   it in the database.
 
@@ -145,6 +182,41 @@ defmodule Vendit.Accounts do
       _ -> :error
     end
   end
+
+  def purchase_product(user, product_id) do
+    product = Products.get_product!(product_id)
+    initial_deposit = user.deposit
+
+    if initial_deposit - product.cost >= 0 do
+      Ecto.Multi.new()
+      |> Ecto.Multi.update(:user, change_user_deposit(user, -initial_deposit))
+      |> Ecto.Multi.update(:product, Products.Product.purchase_changeset(product))
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{user: user, product: product}} ->
+          change = calculate_change(initial_deposit, product.cost)
+          {:ok, user, product, change}
+
+        _error ->
+          :error
+      end
+    else
+      :error
+    end
+  end
+
+  defp calculate_change(initial_deposit, cost) do
+    denominations = [100, 50, 20, 10, 5, 1]
+
+    denominations
+    |> Enum.reduce({initial_deposit - cost, []}, &decrement_denomination/2)
+    |> elem(1)
+  end
+
+  defp decrement_denomination(denomination, {v, acc}) when v >= denomination,
+    do: decrement_denomination(denomination, {v - denomination, [denomination | acc]})
+
+  defp decrement_denomination(_denomination, {_v, _acc} = return), do: return
 
   defp user_email_multi(user, email, context) do
     changeset =
@@ -344,6 +416,19 @@ defmodule Vendit.Accounts do
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, User.password_changeset(user, attrs))
     |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, changeset, _} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Updates a users deposit amount
+  """
+  def update_user_deposit(user, amount) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:user, change_user_deposit(user, amount))
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user}} -> {:ok, user}

@@ -8,6 +8,8 @@ defmodule Vendit.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :naive_datetime
+    field :role, Ecto.Enum, values: [:buyer, :seller], default: :buyer
+    field :deposit, :integer, default: 0
 
     timestamps(type: :utc_datetime)
   end
@@ -118,6 +120,15 @@ defmodule Vendit.Accounts.User do
     |> cast(attrs, [:password])
     |> validate_confirmation(:password, message: "does not match password")
     |> validate_password(opts)
+  end
+
+  @doc """
+  A changeset focused purely on validating and changing the deposit amount.
+  """
+  def deposit_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:deposit])
+    |> validate_number(:deposit, greater_than_or_equal_to: 0, message: "Insufficient Funds!")
   end
 
   @doc """

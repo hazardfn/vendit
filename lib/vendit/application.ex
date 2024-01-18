@@ -11,8 +11,7 @@ defmodule Vendit.Application do
       VenditWeb.Telemetry,
       Vendit.Repo,
       {Ecto.Migrator,
-        repos: Application.fetch_env!(:vendit, :ecto_repos),
-        skip: skip_migrations?()},
+       repos: Application.fetch_env!(:vendit, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:vendit, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Vendit.PubSub},
       # Start a worker by calling: Vendit.Worker.start_link(arg)

@@ -15,12 +15,18 @@ defmodule Vendit.AccountsFixtures do
   end
 
   def user_fixture(attrs \\ %{}) do
-    {:ok, user} =
-      attrs
-      |> valid_user_attributes()
-      |> Vendit.Accounts.register_user()
+    attrs
+    |> valid_user_attributes()
+    |> Vendit.Accounts.register_user()
+    |> case do
+      {:ok, user} ->
+        user
+        |> Ecto.Changeset.cast(%{role: :seller}, [:role])
+        |> Vendit.Repo.update!()
 
-    user
+      :error ->
+        raise("Unable to insert seller account!")
+    end
   end
 
   def extract_user_token(fun) do

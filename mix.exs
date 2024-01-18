@@ -39,7 +39,7 @@ defmodule Vendit.MixProject do
       {:ecto_sqlite3, ">= 0.0.0"},
       {:phoenix_html, "~> 3.3"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 0.20.1"},
+      {:phoenix_live_view, "~> 0.20.3"},
       {:floki, ">= 0.30.0", only: :test},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
@@ -47,7 +47,9 @@ defmodule Vendit.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, ">= 0.0.0"}
+      {:bandit, ">= 0.0.0"},
+      {:swoosh, "~> 1.4"},
+      {:hackney, "~> 1.9"}
     ]
   end
 
